@@ -40,7 +40,7 @@ class PoDM:
 	def average_path_length(self, n):
 		n = np.array(n)
 		apl = self.reg.predict(np.log2([n]).T)
-		apl[apl < 1] = 0
+		apl[apl < 1] = 1
 		return apl
 
 	def decision_function(self, X):
