@@ -3,7 +3,6 @@ from scipy.spatial.distance import cityblock
 
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import LinearRegression
-from pyod.utils.utility import standardizer
 
 import time
 from joblib import Parallel, delayed
@@ -11,8 +10,6 @@ from tqdm import tqdm
 
 from iforest import IsolationForest
 from utils import sythetic_group_anomaly
-
-from collections import Counter
 
 
 class gen2Out:
@@ -118,8 +115,6 @@ class gen2Out:
 		
 		ga_scores = np.array([np.median(s) for s in s_arr])
 		ga_indices = np.array([np.where(labels == l)[0] for l in np.unique(labels) if l != -1])
-
-		print(ga_scores)
 		
 		return ga_scores, ga_indices
 
@@ -128,10 +123,10 @@ if __name__ == '__main__':
 
 	X = sythetic_group_anomaly()
 
-	# t1 = time.time()
-	# pscores = gen2Out().point_anomaly_scores(X)
-	# t2 = time.time()
-	# print(t2 - t1)
+	t1 = time.time()
+	pscores = gen2Out().point_anomaly_scores(X)
+	t2 = time.time()
+	print(t2 - t1)
 
 	t1 = time.time()
 	gscores = gen2Out().group_anomaly_scores(X)
