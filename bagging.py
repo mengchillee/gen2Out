@@ -14,7 +14,7 @@ from warnings import warn
 
 from joblib import Parallel, delayed
 
-from sklearn.ensemble.base import BaseEnsemble, _partition_estimators
+from sklearn.ensemble._base import BaseEnsemble, _partition_estimators
 from sklearn.base import ClassifierMixin, RegressorMixin
 from sklearn.metrics import r2_score, accuracy_score
 from sklearn.tree import DecisionTreeClassifier, DecisionTreeRegressor
@@ -27,7 +27,6 @@ from sklearn.utils.validation import has_fit_parameter, check_is_fitted
 from sklearn.metrics.pairwise import euclidean_distances
 # from sklearn.utils.validation import has_fit_parameter, check_is_fitted, \
 # 	_check_sample_weight, _deprecate_positional_args
-from sklearn.ensemble.iforest import _average_path_length
 
 
 __all__ = ["BaggingClassifier",
@@ -64,7 +63,7 @@ def _generate_bagging_indices(random_state, bootstrap_features,
 
 
 def _parallel_build_estimators(n_estimators, ensemble, X, y, sample_weight,
-							   seeds, total_n_estimators, verbose):
+							   seeds, total_n_estimators, verbose, rotation_matrix):
 	"""Private function used to build a batch of estimators within a job."""
 	# Retrieve settings
 	n_samples, n_features = X.shape
@@ -111,10 +110,15 @@ def _parallel_build_estimators(n_estimators, ensemble, X, y, sample_weight,
 				not_indices_mask = ~indices_to_mask(indices, n_samples)
 				curr_sample_weight[not_indices_mask] = 0
 
-			estimator.fit(X[:, features], y, sample_weight=curr_sample_weight)
-
+			if rotation_matrix is not None:
+				estimator.fit(np.matmul(X[:, features], rotation_matrix[i]), y, sample_weight=curr_sample_weight)
+			else:
+				estimator.fit(X[:, features], y, sample_weight=curr_sample_weight)
 		else:
-			estimator.fit((X[indices])[:, features], y[indices])
+			if rotation_matrix is not None:
+				estimator.fit((np.matmul((X[indices])[:, features], rotation_matrix[i])), y[indices])
+			else:
+				estimator.fit((X[indices])[:, features], y[indices])
 
 		estimators.append(estimator)
 		estimators_features.append(features)
@@ -244,7 +248,7 @@ class BaseBagging(BaseEnsemble, metaclass=ABCMeta):
 	def _parallel_args(self):
 		return {}
 
-	def _fit(self, X, y, max_samples=None, max_depth=None, sample_weight=None):
+	def _fit(self, X, y, max_samples=None, max_depth=None, sample_weight=None, rotation_matrix=None):
 		"""Build a Bagging ensemble of estimators from the training
 		   set (X, y).
 		Parameters
@@ -369,7 +373,8 @@ class BaseBagging(BaseEnsemble, metaclass=ABCMeta):
 				sample_weight,
 				seeds[starts[i]:starts[i + 1]],
 				total_n_estimators,
-				verbose=self.verbose)
+				verbose=self.verbose,
+				rotation_matrix=rotation_matrix)
 			for i in range(n_jobs))
 
 		# Reduce
@@ -395,15 +400,15 @@ class BaseBagging(BaseEnsemble, metaclass=ABCMeta):
 
 	def _get_estimators_indices(self):
 		# Get drawn indices along both sample and feature axes
-		for seed in self._seeds:
-			# Operations accessing random_state must be performed identically
-			# to those in `_parallel_build_estimators()`
-			feature_indices, sample_indices = _generate_bagging_indices(
-				seed, self.bootstrap_features, self.bootstrap,
-				self.n_features_, self._n_samples, self._max_features,
-				self._max_samples)
+		# for seed in self._seeds:
+		# 	# Operations accessing random_state must be performed identically
+		# 	# to those in `_parallel_build_estimators()`
+		feature_indices, sample_indices = _generate_bagging_indices(
+			seed, self.bootstrap_features, self.bootstrap,
+			self.n_features_, self._n_samples, self._max_features,
+			self._max_samples)
 
-			yield feature_indices, sample_indices
+		yield feature_indices, sample_indices
 
 	@property
 	def estimators_samples_(self):
