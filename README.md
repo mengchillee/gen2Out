@@ -13,3 +13,10 @@ Please cite the paper as:
       year={2021},
       organization={IEEE},
     }
+
+## Acknowledgement
+One part of our code is based on scikit-learn IsolationForest, downloaded from https://github.com/scikit-learn/scikit-learn/.
+
+This implementation is according to the following paper:
+
+Liu, F. T., Ting, K. M., & Zhou, Z. H. (2008). Isolation forest. In 2008 8th IEEE International Conference on Data Mining (pp. 413-422). IEEE.
