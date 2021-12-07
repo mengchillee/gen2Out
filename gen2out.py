@@ -1,3 +1,9 @@
+####################################
+# Author: Jeremy (Meng-Chieh) Lee  #
+# Email	: mengchil@cs.cmu.edu      #
+####################################
+
+
 import numpy as np
 from scipy.spatial.distance import cityblock
 
