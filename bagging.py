@@ -1,6 +1,11 @@
+####################################
+# Author: Jeremy (Meng-Chieh) Lee  #
+# Email	: mengchil@cs.cmu.edu      #
+####################################
+
 """Bagging meta-estimator."""
 
-# Author: Gilles Louppe <g.louppe@gmail.com>
+# Original Author: Gilles Louppe <g.louppe@gmail.com>
 # License: BSD 3 clause
 
 
