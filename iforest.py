@@ -1,5 +1,10 @@
-# Authors: Nicolas Goix <nicolas.goix@telecom-paristech.fr>
-#          Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
+####################################
+# Author: Jeremy (Meng-Chieh) Lee  #
+# Email	: mengchil@cs.cmu.edu      #
+####################################
+
+# Original Authors: Nicolas Goix <nicolas.goix@telecom-paristech.fr>
+#                   Alexandre Gramfort <alexandre.gramfort@telecom-paristech.fr>
 # License: BSD 3 clause
 
 import time
