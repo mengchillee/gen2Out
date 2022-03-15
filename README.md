@@ -1,4 +1,4 @@
-# gen2Out: Detecting and Ranking Generalized Anomalies
+# \textsc{gen2Out}: Detecting and Ranking Generalized Anomalies
 
 ------------
 
