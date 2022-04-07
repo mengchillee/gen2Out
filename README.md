@@ -1,4 +1,4 @@
-# gen2Out: Detecting and Ranking Generalized Anomalies
+# gen<sup>2</sup>Out: Detecting and Ranking Generalized Anomalies
 
 ------------
 
