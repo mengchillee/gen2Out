@@ -14,6 +14,15 @@ Please cite the paper as:
       organization={IEEE},
     }
 
+## Usage and Sample Output
+Experiments of Fig. 6 in the paper could be reproduced by running the code directly. 
+You could simply download/clone the entire repository and execute the code by 
+
+```cmd
+make demo
+```
+![image](https://user-images.githubusercontent.com/14501754/162111146-3e04009a-b443-43c9-8c9b-2c654a7e1a02.png)
+
 ## Acknowledgement
 One part of our code is based on scikit-learn IsolationForest, downloaded from https://github.com/scikit-learn/scikit-learn/.
 
