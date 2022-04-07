@@ -13,6 +13,13 @@ Please cite the paper as:
       year={2021},
       organization={IEEE},
     }
+    
+## Installation and Dependency
+The experiment code is writen in Python 3 and built on a number of Python packages:
+- matplotlib==3.5.0
+- numpy==1.21.2
+- scipy==1.7.3
+- scikit_learn==1.0.2
 
 ## Usage and Sample Output
 Experiments of Fig. 6 in the paper could be reproduced by running the code directly. 
