@@ -79,7 +79,7 @@ class gen2Out:
 		self = self.fit(X)
 		return self.decision_function(X)
 	
-	def group_anomaly_scores(self, X, trials=10):
+	def group_anomaly_scores(self, X, trials=10, x_ideal=1, y_ideal=1):
 		### Fit a sequence of gen2Out0
 		self.min_rate = int(np.log2(len(X)) - 8) + 1
 		self.scores = np.zeros((self.min_rate, trials, len(X)))
@@ -116,7 +116,7 @@ class gen2Out:
 		xrays_max = np.argmax(np.mean(self.scores, axis=1), axis=0)
 		for idx in sr_list:
 			if self.labels[idx] != -1:
-				dis = cityblock([np.log2(xrays_max[idx]) / 10 + 1, xrays[idx]], [1, 1])
+				dis = cityblock([np.log2(xrays_max[idx]) / 10 + 1, xrays[idx]], [x_ideal, y_ideal])
 				self.s_arr[self.labels[idx]-1].append((2 - dis) / 2)
 		
 		ga_scores = np.array([np.median(s) for s in self.s_arr])
