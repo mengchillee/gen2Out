@@ -63,7 +63,7 @@ def plot_xray(X, model, idx_arr, line=False):
     plt.ylabel('Anomaly Score', fontsize=20)
     plt.legend(fontsize=12)
 
-def plot_results(X, model):
+def plot_results(X, model, x_ideal=1, y_ideal=1):
     ### Randomly sample when plotting
     idx_arr = np.concatenate([np.arange(300), 
                               np.arange(100000, 100300), 
@@ -110,13 +110,13 @@ def plot_results(X, model):
             ix = 1 / (2 ** i)
             man_x.append(ix)
             man_y.append(j)
-            man_dis.append(cityblock([np.log2(ix) / 10, j], [1, 1]))
+            man_dis.append(cityblock([np.log2(ix) / 10, j], [x_ideal, y_ideal]))
     man_x, man_y, man_dis = np.array(man_x), np.array(man_y), np.array(man_dis)
 
     plt.figure(figsize=(4.8, 4))
     plt.scatter(man_x, man_y, c=man_dis, cmap='gist_rainbow', alpha=0.1)
     plt.colorbar()
-    plt.scatter(1, 1, s=100, c='k', marker='*')
+    plt.scatter(x_ideal, y_ideal, s=100, c='k', marker='*')
 
     xline = 1 / (2 ** np.arange(0, model.min_rate))
     for idx in idx_arr:
