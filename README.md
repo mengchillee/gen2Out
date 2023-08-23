@@ -4,6 +4,8 @@
 
 Lee, MC., Shekhar, S., Faloutsos, C., Hutson, TN., and Iasemidis, L., gen2Out: Detecting and Ranking Generalized Anomalies. *IEEE International Conference on Big Data (Big Data)*, 2021.
 
+https://ieeexplore.ieee.org/abstract/document/9671550
+
 Please cite the paper as:
 
     @inproceedings{lee2021gen2out,
