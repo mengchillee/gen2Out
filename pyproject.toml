@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gen2out"
+version = "0.1.0"
+description = "gen2Out: Detecting and Ranking Generalized Anomalies"
+readme = "README.md"
+requires-python = ">=3.8"
+dependencies = [
+    "matplotlib>=3.5.0",
+    "numpy>=1.21.2",
+    "scipy>=1.7.3",
+    "scikit-learn>=1.0.2",
+    "joblib>=1.1.0",
+    "tqdm>=4.62.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["gen2out*"]
+
+[project.scripts]
+gen2out = "gen2out.main:main"
+gen2out-demo = "gen2out.main:main"

@@ -4,11 +4,21 @@
 ####################################
 
 
+import os
+
 import numpy as np
-from scipy.spatial.distance import cityblock, euclidean
+from scipy.spatial.distance import cityblock
 
 import matplotlib.pyplot as plt
 
+
+### Sizes of the four data segments: background disk, two dense group
+### anomalies, and the scattered point anomalies. The X-ray plot indices are
+### derived from these, so the demo stays consistent if the sizes change.
+DISK_SIZE = 10000
+GROUP_A_SIZE = 100
+GROUP_B_SIZE = 200
+N_POINT_ANOMALIES = 4
 
 def uni_disk(n, low=0, high=1):
     r = np.random.uniform(low=low, high=high, size=n)  # radius
@@ -20,15 +30,15 @@ def uni_disk(n, low=0, high=1):
 def sythetic_group_anomaly(seed=0):
     np.random.seed(seed)
 
-    x1, y1 = uni_disk(100000)
+    x1, y1 = uni_disk(DISK_SIZE)
     x1 *= 5
     y1 *= 5
 
-    x2, y2 = uni_disk(1000)
+    x2, y2 = uni_disk(GROUP_A_SIZE)
     x2 = x2 * 1.5 + 10
     y2 = y2 * 1.5 + 5
 
-    x3, y3 = uni_disk(2000)
+    x3, y3 = uni_disk(GROUP_B_SIZE)
     x3 = x3 * 6 + 3
     y3 = y3 - 10
 
@@ -40,6 +50,18 @@ def sythetic_group_anomaly(seed=0):
     X_norm = np.array([x, y]).T
 
     return X_norm
+
+def _demo_plot_indices(sample_per_group=300):
+    ### Sample indices from the start of each data segment for the X-ray plots
+    sizes = [DISK_SIZE, GROUP_A_SIZE, GROUP_B_SIZE, N_POINT_ANOMALIES]
+    offsets = np.concatenate([[0], np.cumsum(sizes)])
+    idx = [np.arange(offsets[k], offsets[k] + min(sample_per_group, sizes[k]))
+           for k in range(len(sizes))]
+    return np.concatenate(idx)
+
+def load_csv(path):
+    ### Load a 2D point dataset from a CSV file (one point per row)
+    return np.genfromtxt(path, delimiter=',', skip_header=1)
 
 def plot_xray(X, model, idx_arr, line=False):
     plt.scatter(1, 1, s=100, c='k', marker='*')
@@ -63,31 +85,29 @@ def plot_xray(X, model, idx_arr, line=False):
     plt.ylabel('Anomaly Score', fontsize=20)
     plt.legend(fontsize=12)
 
-def plot_results(X, model, x_ideal=1, y_ideal=1):
-    ### Randomly sample when plotting
-    idx_arr = np.concatenate([np.arange(300), 
-                              np.arange(100000, 100300), 
-                              np.arange(101000, 101300), 
-                              np.arange(103000, 103004)])
+def plot_results(X, model, x_ideal=1, y_ideal=1, out_dir='results'):
+    os.makedirs(out_dir, exist_ok=True)
+    ### Sample points from each data segment when plotting
+    idx_arr = _demo_plot_indices()
 
     ### Plot heatmap
     plt.figure(figsize=(4.8, 4))
     plt.hexbin(X[:, 0], X[:, 1], cmap='cool', gridsize=30, bins='log', mincnt=1)
     plt.colorbar()
     plt.tight_layout()
-    plt.savefig('results/step0_heatmap.png')
+    plt.savefig(os.path.join(out_dir, 'step0_heatmap.png'))
 
     ### Step 1: X-ray plot
     plt.figure(figsize=(4, 4))
     plot_xray(X, model, idx_arr, line=True)
     plt.tight_layout()
-    plt.savefig('results/step1_xray_plot.png')
+    plt.savefig(os.path.join(out_dir, 'step1_xray_plot.png'))
 
     ### Step 2: Apex extraction
     plt.figure(figsize=(4, 4))
     plot_xray(X, model, idx_arr, line=False)
     plt.tight_layout()
-    plt.savefig('results/step2_apex_extraction.png')
+    plt.savefig(os.path.join(out_dir, 'step2_apex_extraction.png'))
 
     ### Step 3: Outlier grouping 
     c_arr = ['', 'b', 'r', 'y', 'm', 'g', 'c']
@@ -101,7 +121,7 @@ def plot_results(X, model, x_ideal=1, y_ideal=1):
 
     plt.legend(fontsize=12)
     plt.tight_layout()
-    plt.savefig('results/step3_outlier_grouping.png')
+    plt.savefig(os.path.join(out_dir, 'step3_outlier_grouping.png'))
 
     ### Step 4: Anomaly iso-curves
     man_x, man_y, man_dis = [], [], []
@@ -138,7 +158,7 @@ def plot_results(X, model, x_ideal=1, y_ideal=1):
     plt.ylabel('Anomaly Score', fontsize=20)
     plt.legend(fontsize=12, loc=4)
     plt.tight_layout()
-    plt.savefig('results/step4_anomaly_isocurves.png')
+    plt.savefig(os.path.join(out_dir, 'step4_anomaly_isocurves.png'))
 
     ### Step 5: Scoring
     plt.figure(figsize=(4.4, 4))
@@ -157,4 +177,4 @@ def plot_results(X, model, x_ideal=1, y_ideal=1):
     plt.xlabel('Generalized Anomaly ID', fontsize=20)
     plt.ylabel('Distribution of\nAnomaly Score', fontsize=20)
     plt.tight_layout()
-    plt.savefig('results/step5_scoring.png')
+    plt.savefig(os.path.join(out_dir, 'step5_scoring.png'))

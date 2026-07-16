@@ -3,5 +3,5 @@
 # Email	: mengchil@cs.cmu.edu      #
 ####################################
 
-demo: 
-	python main.py
+demo:
+	gen2out

@@ -29,9 +29,29 @@ from sklearn.base import OutlierMixin
 from scipy.stats import zscore
 from scipy.special import erf
 
-from bagging import BaseBagging
+from .bagging import BaseBagging
 
 __all__ = ["IsolationForest"]
+
+
+def _node_depths(tree):
+    """Return the depth of every node in a fitted decision tree.
+
+    The depth of the leaf a sample lands in equals the path length used by
+    gen2Out, so indexing this array by ``tree.apply(X)`` avoids the expensive
+    ``tree.decision_path(X)`` sparse-matrix computation.
+    """
+    children_left = tree.tree_.children_left
+    children_right = tree.tree_.children_right
+    depths = np.zeros(tree.tree_.node_count, dtype=np.float64)
+    stack = [(0, 0)]
+    while stack:
+        node, depth = stack.pop()
+        depths[node] = depth
+        if children_left[node] != -1:
+            stack.append((children_left[node], depth + 1))
+            stack.append((children_right[node], depth + 1))
+    return depths
 
 
 class IsolationForest(OutlierMixin, BaseBagging):
@@ -469,8 +489,7 @@ class IsolationForest(OutlierMixin, BaseBagging):
                 Xs = np.array(X)
 
             leaves_index = tree.apply(Xs)
-            node_indicator = tree.decision_path(Xs)
-            depths[idx] = np.ravel(node_indicator.sum(axis=1)) - 1.0
+            depths[idx] = _node_depths(tree)[leaves_index]
 
         return np.array(depths)
 
@@ -490,10 +509,9 @@ class IsolationForest(OutlierMixin, BaseBagging):
                 Xs = np.array(X)
 
             leaves_index = tree.apply(Xs)
-            node_indicator = tree.decision_path(Xs)
             n_samples_leaf = tree.tree_.n_node_samples[leaves_index]
 
-            depths[idx] = np.ravel(node_indicator.sum(axis=1)) - 1.0
+            depths[idx] = _node_depths(tree)[leaves_index]
             leaves[idx] = n_samples_leaf
 
         return np.array(depths), np.array(leaves)

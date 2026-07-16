@@ -10,11 +10,10 @@ from scipy.spatial.distance import cityblock
 from sklearn.cluster import DBSCAN
 from sklearn.linear_model import LinearRegression
 
-import time
 from joblib import Parallel, delayed
 from tqdm import tqdm
 
-from iforest import IsolationForest
+from .iforest import IsolationForest
 
 
 class gen2Out:
@@ -38,12 +37,15 @@ class gen2Out:
 		y, x = np.histogram(depths, bins=bins)
 		return i, x[np.argmax(y)]
 
-	def fit(self, X):
+	def fit(self, X, n_jobs=None):
 		if self.random_state:
 			np.random.seed(self.random_state)
 		self.n_sample = X.shape[0]
 
-		params_arr = Parallel(n_jobs=self.upper_bound-self.lower_bound)(
+		if n_jobs is None:
+			n_jobs = self.upper_bound - self.lower_bound
+
+		params_arr = Parallel(n_jobs=n_jobs)(
 								[delayed(self.func)(X[np.random.choice(self.n_sample, 2 ** i, replace=True)], i)
 								for i in np.arange(self.lower_bound, self.upper_bound)])
 		x_arr, y_arr = np.array(params_arr).T
@@ -65,31 +67,53 @@ class gen2Out:
 	def decision_function(self, X):
 		depths, leaves = self.clf._compute_actual_depth_leaf(X)
 
-		new_depths = np.zeros(X.shape[0])
-		for d, l in zip(depths, leaves):
-			new_depths += d + self.average_path_length(l)
+		### Vectorize the per-tree average path length over all leaves at once
+		apl = self.average_path_length(leaves.ravel()).reshape(leaves.shape)
+		new_depths = (depths + apl).sum(axis=0)
 
 		scores = 2 ** (-new_depths
 					   / (len(self.clf.estimators_)
 						  * self.average_path_length([self.n_sample])))
-		
+
 		return scores
 
 	def point_anomaly_scores(self, X):
 		self = self.fit(X)
 		return self.decision_function(X)
-	
-	def group_anomaly_scores(self, X, trials=10, x_ideal=1, y_ideal=1):
+
+	def _group_trial(self, X, i, j, seed):
+		### One independent gen2Out0 trial: sub-sample X at rate 1 / 2^i, fit a
+		### fresh model with a deterministic seed, and score every point in X.
+		rng = np.random.RandomState(seed)
+		X_sampled = X[rng.choice(len(X), int(len(X) * (1 / (2 ** i))))]
+
+		clf = gen2Out(lower_bound=self.lower_bound,
+					  upper_bound=self.upper_bound,
+					  max_depth=self.max_depth,
+					  rotate=self.rotate,
+					  contamination=self.contamination,
+					  random_state=seed)
+		clf.fit(X_sampled, n_jobs=1)
+		return i, j, clf.decision_function(X)
+
+	def group_anomaly_scores(self, X, trials=10, x_ideal=1, y_ideal=1, eps=1.0, min_samples=5, n_jobs=-1):
 		### Fit a sequence of gen2Out0
 		self.min_rate = int(np.log2(len(X)) - 8) + 1
 		self.scores = np.zeros((self.min_rate, trials, len(X)))
 
+		### Each (i, j) trial is independent and runs in parallel. Seeds are
+		### derived from random_state so results stay reproducible.
+		base_seed = self.random_state if self.random_state is not None else 0
+		jobs = [(i, j, base_seed + i * trials + j + 1)
+				for i in range(self.min_rate) for j in range(trials)]
+
 		print('Fitting gen2Out0...')
-		for i in tqdm(range(self.min_rate)):
-			for j in range(trials):
-				X_sampled = X[np.random.choice(len(X), int(len(X) * (1 / (2 ** i))))]
-				clf = self.fit(X_sampled)
-				self.scores[i][j] = clf.decision_function(X)
+		results = Parallel(n_jobs=n_jobs)(
+			delayed(self._group_trial)(X, i, j, seed)
+			for i, j, seed in tqdm(jobs))
+
+		for i, j, s in results:
+			self.scores[i][j] = s
 
 		### Create X-ray plot
 		smax = np.max(np.mean(self.scores, axis=1), axis=0)
@@ -103,7 +127,7 @@ class gen2Out:
 		sr_list = np.array(sr_list)
 
 		### Outlier grouping
-		groups = DBSCAN().fit_predict(X[sr_list])
+		groups = DBSCAN(eps=eps, min_samples=min_samples).fit_predict(X[sr_list])
 
 		self.labels = -np.ones(len(X)).astype(int)
 		for idx, g in zip(sr_list, groups):
