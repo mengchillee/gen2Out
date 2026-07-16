@@ -3,7 +3,7 @@ set -e
 
 MODE="${1:-conda}"
 
-DEPS="matplotlib==3.5.0 numpy==1.21.2 scipy==1.7.3 scikit_learn==1.0.2 joblib==1.1.0 tqdm==4.62.0"
+DEPS="matplotlib==3.5.0 numpy==1.21.2 scipy==1.7.3 scikit_learn==1.0.2 joblib==1.1.0 tqdm==4.62.0 pandas==1.3.5 pyarrow==6.0.1"
 
 if [ "$MODE" = "uv" ]; then
     uv venv .venv --python 3.8

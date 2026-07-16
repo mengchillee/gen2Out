@@ -135,7 +135,6 @@ class gen2Out:
 				self.labels[idx] = g + 1
 				
 		### Compute iso-curves
-		xline = 1 / (2 ** np.arange(0, self.min_rate))
 		self.s_arr = [[] for l in np.unique(self.labels) if l != -1]
 		xrays_max = np.argmax(np.mean(self.scores, axis=1), axis=0)
 		for idx in sr_list:
@@ -143,7 +142,7 @@ class gen2Out:
 				dis = cityblock([np.log2(xrays_max[idx]) / 10 + 1, xrays[idx]], [x_ideal, y_ideal])
 				self.s_arr[self.labels[idx]-1].append((2 - dis) / 2)
 		
-		ga_scores = np.array([np.median(s) for s in self.s_arr])
+		self.ga_scores = np.array([np.median(s) for s in self.s_arr])
 		ga_indices = [np.where(self.labels == l)[0] for l in np.unique(self.labels) if l != -1]
-		
-		return ga_scores, ga_indices
+
+		return self.ga_scores, ga_indices

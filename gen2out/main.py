@@ -9,7 +9,7 @@ import time
 import argparse
 
 from .gen2out import gen2Out
-from .utils import sythetic_group_anomaly, load_csv, plot_results
+from .utils import sythetic_group_anomaly, load_csv, plot_results, save_results
 
 
 def parse_args():
@@ -53,12 +53,17 @@ def main():
 
     print('Start group anomaly detection:')
     t1 = time.time()
-    gscores = model.group_anomaly_scores(X, eps=args.eps, n_jobs=args.n_jobs)
+    model.group_anomaly_scores(X, eps=args.eps, n_jobs=args.n_jobs)
     t2 = time.time()
     print('Finish in %.1f seconds!\n' % (t2 - t1))
 
     print('Generating plots...')
     plot_results(X, model, out_dir=args.out)
+
+    out_path = os.path.join(args.out, 'microclusters.parquet')
+    print('Saving results to %s...' % out_path)
+    save_results(X, model, out_path, point_scores=pscores)
+
     print('Finish!')
 
 

@@ -51,6 +51,30 @@ def sythetic_group_anomaly(seed=0):
 
     return X_norm
 
+def uni_ball(n, dim, radius=1):
+    ### Uniformly sample n points inside a `dim`-dimensional ball of `radius`
+    directions = np.random.normal(size=(n, dim))
+    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
+    r = radius * np.random.uniform(size=(n, 1)) ** (1 / dim)
+    return directions * r
+
+def sythetic_group_anomaly_4d(seed=0):
+    ### 4D analogue of sythetic_group_anomaly: one large background ball plus
+    ### two dense group anomalies and four scattered point anomalies. Segment
+    ### sizes match the 2D version so the demo indices stay consistent.
+    np.random.seed(seed)
+
+    bg = uni_ball(DISK_SIZE, 4, radius=5)
+    ga1 = uni_ball(GROUP_A_SIZE, 4, radius=1.5) + np.array([10, 5, 10, 5])
+    ga2 = uni_ball(GROUP_B_SIZE, 4, radius=2.0) + np.array([3, -10, -8, 6])
+
+    pa = np.array([[11, 0, 12, -3],
+                   [-2, 9, -11, 7],
+                   [13, -10, 10, 10],
+                   [14, 10, -12, -11]])
+
+    return np.concatenate([bg, ga1, ga2, pa])
+
 def _demo_plot_indices(sample_per_group=300):
     ### Sample indices from the start of each data segment for the X-ray plots
     sizes = [DISK_SIZE, GROUP_A_SIZE, GROUP_B_SIZE, N_POINT_ANOMALIES]
@@ -62,6 +86,46 @@ def _demo_plot_indices(sample_per_group=300):
 def load_csv(path):
     ### Load a 2D point dataset from a CSV file (one point per row)
     return np.genfromtxt(path, delimiter=',', skip_header=1)
+
+def results_dataframe(X, model, point_scores=None):
+    ### Build a per-point table of the group anomaly detection results.
+    ### Requires model.group_anomaly_scores(X) to have been run first.
+    import pandas as pd
+
+    xrays = np.max(np.mean(model.scores, axis=1), axis=0)
+
+    ### Map each point's cluster to its group anomaly severity score (NaN if
+    ### the point is not part of any detected generalized anomaly).
+    group_score = np.full(len(X), np.nan)
+    for cid in np.unique(model.labels):
+        if cid != -1:
+            group_score[model.labels == cid] = model.ga_scores[cid - 1]
+
+    ### A point above the threshold is an anomaly. If it landed in a cluster it
+    ### is a group anomaly, otherwise it is a (standalone) point anomaly.
+    above_threshold = xrays >= model.threshold
+    is_group_anomaly = above_threshold & (model.labels != -1)
+    is_point_anomaly = above_threshold & (model.labels == -1)
+
+    ### One column per feature: x, y for 2D, else feature_0, feature_1, ...
+    if X.shape[1] == 2:
+        df = pd.DataFrame({'x': X[:, 0], 'y': X[:, 1]})
+    else:
+        df = pd.DataFrame(X, columns=['feature_%d' % d for d in range(X.shape[1])])
+    if point_scores is not None:
+        df['point_score'] = point_scores           # point anomaly score
+    df['xray_score'] = xrays                        # group anomaly x-ray score
+    df['is_point_anomaly'] = is_point_anomaly       # above threshold, not clustered
+    df['is_group_anomaly'] = is_group_anomaly       # above threshold, in a cluster
+    df['cluster_id'] = model.labels                 # DBSCAN group (-1 = ungrouped)
+    df['group_score'] = group_score                 # group anomaly severity (per cluster)
+    return df
+
+def save_results(X, model, path, point_scores=None):
+    ### Save the per-point results table to a Parquet file.
+    df = results_dataframe(X, model, point_scores=point_scores)
+    df.to_parquet(path)
+    return df
 
 def plot_xray(X, model, idx_arr, line=False):
     plt.scatter(1, 1, s=100, c='k', marker='*')
@@ -86,6 +150,9 @@ def plot_xray(X, model, idx_arr, line=False):
     plt.legend(fontsize=12)
 
 def plot_results(X, model, x_ideal=1, y_ideal=1, out_dir='results'):
+    if X.shape[1] != 2:
+        print('Skipping plots: figures are only supported for 2D data (got %dD).' % X.shape[1])
+        return
     os.makedirs(out_dir, exist_ok=True)
     ### Sample points from each data segment when plotting
     idx_arr = _demo_plot_indices()
