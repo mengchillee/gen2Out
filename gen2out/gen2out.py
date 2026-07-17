@@ -16,6 +16,17 @@ from tqdm import tqdm
 from .iforest import IsolationForest
 
 
+def _shutdown_parallel_pool():
+    ### Terminate joblib/loky's reusable worker pool so its processes are joined
+    ### now rather than at interpreter exit (which can segfault when it races
+    ### with native BLAS/OpenMP thread teardown). No-op if loky is unavailable.
+    try:
+        from joblib.externals.loky import get_reusable_executor
+        get_reusable_executor().shutdown(wait=True)
+    except Exception:
+        pass
+
+
 class gen2Out:
 	def __init__(self, lower_bound=9, upper_bound=12, max_depth=7,
 				 rotate=True, contamination='auto', random_state=None):
@@ -111,6 +122,11 @@ class gen2Out:
 		results = Parallel(n_jobs=n_jobs)(
 			delayed(self._group_trial)(X, i, j, seed)
 			for i, j, seed in tqdm(jobs))
+
+		### Shut down loky's worker pool deterministically. Otherwise it is torn
+		### down at interpreter exit, where it can race with native BLAS/OpenMP
+		### threads and cause an at-exit segfault.
+		_shutdown_parallel_pool()
 
 		for i, j, s in results:
 			self.scores[i][j] = s
